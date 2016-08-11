@@ -23,6 +23,7 @@ namespace WindowsFormsApplication1
             InitializeComponent();
             OutputToText("Output Started" + "\r\n");
             //DoTheJSON();
+            
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -45,19 +46,34 @@ namespace WindowsFormsApplication1
 
         private void DownloadStringComplete(object sender, DownloadStringCompletedEventArgs e)
         {
-            OutputToText(e.Result);
             textBox1.AppendText("Load Complete!" + "\r\n");
+
             var definition = new { next_change_id = "" };
             string result = e.Result;
             var temp = JsonConvert.DeserializeAnonymousType(result, definition);
-            textBox1.AppendText(temp.next_change_id);
-            if (temp.next_change_id != null)
+            //textBox1.AppendText(temp.next_change_id);
+
+            RootObject root = new RootObject();
+
+            var temp2 = JsonConvert.DeserializeObject<RootObject>(result);
+
+            foreach (var item in temp2.stashes)
             {
-                string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
-                address += temp.next_change_id;
-                client.DownloadStringAsync(new Uri(address));
-                textBox1.AppendText("getting next change id..." + "\r\n");
+                textBox1.AppendText(item.accountName + "\r\n");
+                foreach (var i in item.items)
+                {
+                    textBox1.AppendText(i.name + "\r\n");
+                    textBox1.AppendText(i.note + "\r\n");
+                }
             }
+
+            //if (temp.next_change_id != null)
+            //{
+            //    string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
+            //    address += temp.next_change_id;
+            //    client.DownloadStringAsync(new Uri(address));
+            //    textBox1.AppendText("getting next change id..." + "\r\n");
+            //}
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)

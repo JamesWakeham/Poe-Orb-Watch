@@ -9,3 +9,20 @@ c:\users\james.wakeham\documents\visual studio 2015\Projects\WindowsFormsApplica
 c:\users\james.wakeham\documents\visual studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.pdb
 C:\Users\james.wakeham\Documents\Visual Studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\Newtonsoft.Json.dll
 C:\Users\james.wakeham\Documents\Visual Studio 2015\Projects\WindowsFormsApplication1\WindowsFormsApplication1\bin\Debug\Newtonsoft.Json.xml
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe.config
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.exe
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.pdb
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.exe
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\WindowsFormsApplication1.pdb
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Elasticsearch.Net.dll
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Nest.dll
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Newtonsoft.Json.dll
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Elasticsearch.Net.pdb
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Elasticsearch.Net.xml
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Nest.pdb
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Nest.xml
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\bin\Debug\Newtonsoft.Json.xml
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.csprojResolveAssemblyReference.cache
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.Form1.resources
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.Properties.Resources.resources
+C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Debug\WindowsFormsApplication1.csproj.GenerateResource.Cache
