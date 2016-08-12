@@ -10,20 +10,26 @@ using System.Net;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace WindowsFormsApplication1
 {
     public partial class Form1 : Form
     {
+        Data data;
+
         WebClient client = new WebClient();
-        string downloadString;
 
         public Form1()
         {
             InitializeComponent();
-            OutputToText("Output Started" + "\r\n");
-            //DoTheJSON();
             
+            if (File.Exists("data.txt"))
+            {
+                AppendToTextbox("data.txt found");
+                LoadStashData();
+                AppendToTextbox(data.nextChangeId + " is next change ID");
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -34,9 +40,45 @@ namespace WindowsFormsApplication1
 
         private void LoadData_Click(object sender, EventArgs e)
         {
-            client.DownloadStringAsync(new Uri("http://www.pathofexile.com/api/public-stash-tabs"));
-            textBox1.AppendText("Load Started..."+"\r\n");
+            if (data.nextChangeId != null)
+            {
+                string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
+                address += data.nextChangeId;
+                client.DownloadStringAsync(new Uri(address));
+                textBox1.AppendText("getting next change id..." + "\r\n");
+                textBox1.AppendText(data.nextChangeId + " is next change ID" + "\r\n");
+            }
+            else
+            {
+                data = new Data();
+                data.dataLoc = new Dictionary<string, string>();
+
+                client.DownloadStringAsync(new Uri("http://www.pathofexile.com/api/public-stash-tabs"));
+                textBox1.AppendText("Load Started..." + "\r\n");
+            }
         }
+
+        void LoadStashData()
+        {
+
+            string temp;
+
+            using (StreamReader reader = new StreamReader("data.txt"))
+            {
+                temp = reader.ReadToEnd();
+            }
+
+            data = JsonConvert.DeserializeObject<Data>(temp);
+        }
+
+        void SaveStashData()
+        {
+            string temp = JsonConvert.SerializeObject(data);
+
+            OutputToText(temp);
+        }
+
+        
 
         private void DownloadPregressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
@@ -51,29 +93,26 @@ namespace WindowsFormsApplication1
             var definition = new { next_change_id = "" };
             string result = e.Result;
             var temp = JsonConvert.DeserializeAnonymousType(result, definition);
-            //textBox1.AppendText(temp.next_change_id);
 
-            RootObject root = new RootObject();
+            RootObject tempRoot = JsonConvert.DeserializeObject<RootObject>(result);
 
-            var temp2 = JsonConvert.DeserializeObject<RootObject>(result);
+            ParseRootObject(tempRoot);
 
-            foreach (var item in temp2.stashes)
+            if (temp.next_change_id != null)
             {
-                textBox1.AppendText(item.accountName + "\r\n");
-                foreach (var i in item.items)
-                {
-                    textBox1.AppendText(i.name + "\r\n");
-                    textBox1.AppendText(i.note + "\r\n");
-                }
+                string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
+                address += temp.next_change_id;
+                data.nextChangeId = temp.next_change_id;
+                client.DownloadStringAsync(new Uri(address));
+                textBox1.AppendText("getting next change id..." + "\r\n");
             }
 
-            //if (temp.next_change_id != null)
-            //{
-            //    string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
-            //    address += temp.next_change_id;
-            //    client.DownloadStringAsync(new Uri(address));
-            //    textBox1.AppendText("getting next change id..." + "\r\n");
-            //}
+            SaveStashData();
+        }
+
+        public void AppendToTextbox (string _text)
+        {
+            textBox1.AppendText(_text + "\r\n");
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -83,43 +122,60 @@ namespace WindowsFormsApplication1
 
         void OutputToText (string _string)
         {
-            using (StreamWriter writer =
-    new StreamWriter("important.txt",true))
+            using (StreamWriter writer = new StreamWriter("data.txt",false))
             {
                 writer.Write(_string);
             }
         }
 
-        private void ParseButton_Click(object sender, EventArgs e)
+        void OutputToText(string _string, string _filePath)
         {
-            List<string> list = new List<string>();
-            using (StreamReader reader = new StreamReader("important.txt"))
+            Stream stream = File.Open(_filePath, FileMode.OpenOrCreate);
+            using (StreamWriter writer = new StreamWriter(stream))
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    list.Add(line); // Add to list.
-                }
-            }
-            foreach (string item in list)
-            {
-                if (item.Contains("jimbobrlw"))
-                {
-                    textBox1.AppendText(item + "\r\n");
-                }
+                writer.Write(_string);
             }
         }
 
-        //void DoTheJSON ()
-        //{
-        //    //"http://www.pathofexile.com/api/public-stash-tabs"
-        //    Class1 class1 = new Class1();
-        //    class1.price = 99;
-        //    class1.Name = "Pizza";
+        void ParseRootObject (RootObject _root)
+        {
+            AppendToTextbox("Updating " + _root.stashes.Count() + " stashes...");
+            int i = 0;
+            foreach (var item in _root.stashes)
+            {
+                if (item.items.Count == 0)
+                {
 
-        //    string output = JsonConvert.SerializeObject(class1);
-        //    label1.Text = output;
-        //}
+                }
+                else
+                {
+                    i++;
+                    string path = Path.Combine(Environment.CurrentDirectory, @"Data\", item.id);
 
+                    //if (!data.dataLoc.ContainsKey(item.id))
+                    //    data.dataLoc.Add(item.id, path);
+
+                    string tempData = JsonConvert.SerializeObject(item);
+                    OutputToText(tempData, path);
+                }
+            }
+            AppendToTextbox(i + " changes made");
+            //AppendToTextbox("Now Storing " + data.dataLoc.Count() + " stashes.");
+        }
+
+        void CreateDataFile(Stash _stash)
+        {
+            string path = Path.Combine(Environment.CurrentDirectory, @"Data\", _stash.id);
+            data.dataLoc[_stash.id] = path;
+            string tempData = JsonConvert.SerializeObject(_stash);
+            OutputToText(tempData, path);
+
+            AppendToTextbox(_stash.accountName + " added to data");
+        }
+
+        private void ParseButton_Click(object sender, EventArgs e)
+        {
+            OutputToText(data.ToString());
+        }
     }
 }
