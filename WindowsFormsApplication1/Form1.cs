@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.IO.Compression;
 
 namespace WindowsFormsApplication1
 {
@@ -20,22 +15,69 @@ namespace WindowsFormsApplication1
 
         WebClient client = new WebClient();
 
+        float dataSize;
+
         public Form1()
         {
             InitializeComponent();
-            
+            client.Headers["Accept-Encoding"] = "gzip";
+            data = new Data();
+            if (Directory.Exists("Data"))
+            {
+                AppendToTextbox("Data directory exists");
+            }
+            else
+            {
+                Directory.CreateDirectory("Data");
+                if (Directory.Exists("Data"))
+                {
+                    AppendToTextbox("Data directory has been created");
+                }
+            }
             if (File.Exists("data.txt"))
             {
                 AppendToTextbox("data.txt found");
                 LoadStashData();
                 AppendToTextbox(data.nextChangeId + " is next change ID");
+            } else
+            {
+
             }
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            client.DownloadDataCompleted += new DownloadDataCompletedEventHandler(DownloadDataComplete);
             client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(DownloadStringComplete);
-            client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(DownloadPregressChanged);
+            client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(DownloadProgressChanged);
+        }
+
+        private void DownloadDataComplete(object sender, DownloadDataCompletedEventArgs e)
+        {
+            AppendToTextbox(dataSize.ToString("0.00") + "mb recieved");
+            dataSize = 0;
+            textBox1.AppendText("Load Complete!" + "\r\n");
+
+            var definition = new { next_change_id = "" };
+            
+            string result = System.Text.ASCIIEncoding.ASCII.GetString(Decompress(e.Result));
+
+            var temp = JsonConvert.DeserializeAnonymousType(result, definition);
+
+            RootObject tempRoot = JsonConvert.DeserializeObject<RootObject>(result);
+
+            ParseRootObject(tempRoot);
+
+            if (temp.next_change_id != null)
+            {
+                string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
+                address += temp.next_change_id;
+                data.nextChangeId = temp.next_change_id;
+                client.DownloadDataAsync(new Uri(address));
+                textBox1.AppendText("getting next change id..." + "\r\n");
+            }
+
+            SaveStashData();
         }
 
         private void LoadData_Click(object sender, EventArgs e)
@@ -44,7 +86,7 @@ namespace WindowsFormsApplication1
             {
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
                 address += data.nextChangeId;
-                client.DownloadStringAsync(new Uri(address));
+                client.DownloadDataAsync(new Uri(address));
                 textBox1.AppendText("getting next change id..." + "\r\n");
                 textBox1.AppendText(data.nextChangeId + " is next change ID" + "\r\n");
             }
@@ -53,7 +95,7 @@ namespace WindowsFormsApplication1
                 data = new Data();
                 data.dataLoc = new Dictionary<string, string>();
 
-                client.DownloadStringAsync(new Uri("http://www.pathofexile.com/api/public-stash-tabs"));
+                client.DownloadDataAsync(new Uri("http://www.pathofexile.com/api/public-stash-tabs"));
                 textBox1.AppendText("Load Started..." + "\r\n");
             }
         }
@@ -67,7 +109,6 @@ namespace WindowsFormsApplication1
             {
                 temp = reader.ReadToEnd();
             }
-
             data = JsonConvert.DeserializeObject<Data>(temp);
         }
 
@@ -80,18 +121,22 @@ namespace WindowsFormsApplication1
 
         
 
-        private void DownloadPregressChanged(object sender, DownloadProgressChangedEventArgs e)
+        private void DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
+            dataSize = (e.BytesReceived / 1000000.0f);
             //float size = (e.BytesReceived / 1000000.0f);
             //textBox1.AppendText(size.ToString("0.00") + " mb recieved" + "\r\n");
         }
 
         private void DownloadStringComplete(object sender, DownloadStringCompletedEventArgs e)
         {
+            AppendToTextbox(dataSize.ToString("0.00") + "mb recieved");
+            dataSize = 0;
             textBox1.AppendText("Load Complete!" + "\r\n");
 
             var definition = new { next_change_id = "" };
             string result = e.Result;
+
             var temp = JsonConvert.DeserializeAnonymousType(result, definition);
 
             RootObject tempRoot = JsonConvert.DeserializeObject<RootObject>(result);
@@ -103,7 +148,7 @@ namespace WindowsFormsApplication1
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
                 address += temp.next_change_id;
                 data.nextChangeId = temp.next_change_id;
-                client.DownloadStringAsync(new Uri(address));
+                client.DownloadDataAsync(new Uri(address));
                 textBox1.AppendText("getting next change id..." + "\r\n");
             }
 
@@ -177,5 +222,31 @@ namespace WindowsFormsApplication1
         {
             OutputToText(data.ToString());
         }
+
+        static byte[] Decompress(byte[] gzip)
+        {
+            // Create a GZIP stream with decompression mode.
+            // ... Then create a buffer and write into while reading from the GZIP stream.
+            using (GZipStream stream = new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress))
+            {
+                const int size = 4096;
+                byte[] buffer = new byte[size];
+                using (MemoryStream memory = new MemoryStream())
+                {
+                    int count = 0;
+                    do
+                    {
+                        count = stream.Read(buffer, 0, size);
+                        if (count > 0)
+                        {
+                            memory.Write(buffer, 0, count);
+                        }
+                    }
+                    while (count > 0);
+                    return memory.ToArray();
+                }
+            }
+        }
+
     }
 }
