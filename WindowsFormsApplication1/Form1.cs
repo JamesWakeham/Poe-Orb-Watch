@@ -15,11 +15,15 @@ namespace WindowsFormsApplication1
 
         WebClient client = new WebClient();
 
+        Timer timer = new Timer();
+
         float dataSize;
+        bool checkOver, canCheck = true;
 
         public Form1()
         {
             InitializeComponent();
+            FormWithTimer();
             client.Headers["Accept-Encoding"] = "gzip";
             data = new Data();
             if (Directory.Exists("Data"))
@@ -39,16 +43,27 @@ namespace WindowsFormsApplication1
                 AppendToTextbox("data.txt found");
                 LoadStashData();
                 AppendToTextbox(data.nextChangeId + " is next change ID");
-            } else
-            {
-
             }
+        }
+
+        public void FormWithTimer()
+        {
+            timer.Tick += new EventHandler(timer_Tick); // Everytime timer ticks, timer_Tick will be called
+            timer.Interval = (1000) * (1);              // Timer will tick evert second
+            timer.Enabled = true;                       // Enable the timer
+        }
+
+        private void timer_Tick(object sender, EventArgs e)
+        {
+            DownloadData(data.nextChangeId);
+            canCheck = true;
+            timer.Stop();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
             client.DownloadDataCompleted += new DownloadDataCompletedEventHandler(DownloadDataComplete);
-            client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(DownloadStringComplete);
+            //client.DownloadStringCompleted += new DownloadStringCompletedEventHandler(DownloadStringComplete);
             client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(DownloadProgressChanged);
         }
 
@@ -64,24 +79,34 @@ namespace WindowsFormsApplication1
 
             var temp = JsonConvert.DeserializeAnonymousType(result, definition);
 
+            data.nextChangeId = definition.next_change_id;
+
             RootObject tempRoot = JsonConvert.DeserializeObject<RootObject>(result);
 
             ParseRootObject(tempRoot);
 
-            if (temp.next_change_id != null)
+            if (canCheck)
             {
-                string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
-                address += temp.next_change_id;
-                data.nextChangeId = temp.next_change_id;
-                client.DownloadDataAsync(new Uri(address));
-                textBox1.AppendText("getting next change id..." + "\r\n");
+                DownloadData(data.nextChangeId);
+            } else
+            {
+                timer.Start();
             }
-
             SaveStashData();
+        }
+
+        void DownloadData (string temp)
+        {
+            string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
+            address += temp;
+            data.nextChangeId = temp;
+            client.DownloadDataAsync(new Uri(address));
+            textBox1.AppendText("getting next change id..." + "\r\n");
         }
 
         private void LoadData_Click(object sender, EventArgs e)
         {
+            checkOver = false;
             if (data.nextChangeId != null)
             {
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
@@ -94,7 +119,6 @@ namespace WindowsFormsApplication1
             {
                 data = new Data();
                 data.dataLoc = new Dictionary<string, string>();
-
                 client.DownloadDataAsync(new Uri("http://www.pathofexile.com/api/public-stash-tabs"));
                 textBox1.AppendText("Load Started..." + "\r\n");
             }
@@ -102,7 +126,6 @@ namespace WindowsFormsApplication1
 
         void LoadStashData()
         {
-
             string temp;
 
             using (StreamReader reader = new StreamReader("data.txt"))
@@ -143,7 +166,7 @@ namespace WindowsFormsApplication1
 
             ParseRootObject(tempRoot);
 
-            if (temp.next_change_id != null)
+            if (!checkOver)
             {
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
                 address += temp.next_change_id;
@@ -184,28 +207,34 @@ namespace WindowsFormsApplication1
 
         void ParseRootObject (RootObject _root)
         {
-            AppendToTextbox("Updating " + _root.stashes.Count() + " stashes...");
-            int i = 0;
-            foreach (var item in _root.stashes)
+            if (_root.stashes != null)
             {
-                if (item.items.Count == 0)
+                AppendToTextbox("Updating " + _root.stashes.Count() + " stashes...");
+
+                int i = 0;
+                foreach (var item in _root.stashes)
                 {
+                    if (item.items.Count == 0)
+                    {
 
+                    }
+                    else
+                    {
+                        i++;
+                        string path = Path.Combine(Environment.CurrentDirectory, @"Data\", item.id);
+
+                        //if (!data.dataLoc.ContainsKey(item.id))
+                        //    data.dataLoc.Add(item.id, path);
+
+                        string tempData = JsonConvert.SerializeObject(item);
+                        OutputToText(tempData, path);
+                    }
                 }
-                else
-                {
-                    i++;
-                    string path = Path.Combine(Environment.CurrentDirectory, @"Data\", item.id);
-
-                    //if (!data.dataLoc.ContainsKey(item.id))
-                    //    data.dataLoc.Add(item.id, path);
-
-                    string tempData = JsonConvert.SerializeObject(item);
-                    OutputToText(tempData, path);
-                }
+            } else
+            {
+                checkOver = true;
+                AppendToTextbox("No changes made!");
             }
-            AppendToTextbox(i + " changes made");
-            //AppendToTextbox("Now Storing " + data.dataLoc.Count() + " stashes.");
         }
 
         void CreateDataFile(Stash _stash)
