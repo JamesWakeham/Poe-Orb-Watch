@@ -13,15 +13,20 @@ namespace WindowsFormsApplication1
     {
         Data data;
 
+        List<Item> items;
+
         WebClient client = new WebClient();
 
         Timer timer = new Timer();
 
         float dataSize;
-        bool checkOver, canCheck = true;
+        bool currentlyDownloading=false, canDownload = true;
+
+        string leagueName, itemName;
 
         public Form1()
         {
+            items = new List<Item>();
             InitializeComponent();
             FormWithTimer();
             client.Headers["Accept-Encoding"] = "gzip";
@@ -49,15 +54,17 @@ namespace WindowsFormsApplication1
         public void FormWithTimer()
         {
             timer.Tick += new EventHandler(timer_Tick); // Everytime timer ticks, timer_Tick will be called
-            timer.Interval = (1000) * (1);              // Timer will tick evert second
+            timer.Interval = (1000) * (2);              // Timer will tick every two seconds
             timer.Enabled = true;                       // Enable the timer
+            timer.Start();
         }
 
         private void timer_Tick(object sender, EventArgs e)
         {
-            DownloadData(data.nextChangeId);
-            canCheck = true;
-            timer.Stop();
+            if (!canDownload && !currentlyDownloading)
+            {
+                DownloadData(data.nextChangeId);
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -79,34 +86,33 @@ namespace WindowsFormsApplication1
 
             var temp = JsonConvert.DeserializeAnonymousType(result, definition);
 
-            data.nextChangeId = definition.next_change_id;
+            data.nextChangeId = temp.next_change_id;
 
             RootObject tempRoot = JsonConvert.DeserializeObject<RootObject>(result);
 
             ParseRootObject(tempRoot);
 
-            if (canCheck)
+            if (canDownload)
             {
                 DownloadData(data.nextChangeId);
-            } else
-            {
-                timer.Start();
             }
             SaveStashData();
         }
 
-        void DownloadData (string temp)
+        void DownloadData (string nextChangeID)
         {
             string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
-            address += temp;
-            data.nextChangeId = temp;
+            address += nextChangeID;
+            data.nextChangeId = nextChangeID;
             client.DownloadDataAsync(new Uri(address));
-            textBox1.AppendText("getting next change id..." + "\r\n");
+            textBox1.AppendText("getting data at " + nextChangeID + "\r\n");
+            canDownload = false;
+            currentlyDownloading = true;
         }
 
         private void LoadData_Click(object sender, EventArgs e)
         {
-            checkOver = false;
+            currentlyDownloading = false;
             if (data.nextChangeId != null)
             {
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
@@ -166,7 +172,7 @@ namespace WindowsFormsApplication1
 
             ParseRootObject(tempRoot);
 
-            if (!checkOver)
+            if (!currentlyDownloading)
             {
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
                 address += temp.next_change_id;
@@ -185,7 +191,6 @@ namespace WindowsFormsApplication1
 
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
-
         }
 
         void OutputToText (string _string)
@@ -203,6 +208,17 @@ namespace WindowsFormsApplication1
             {
                 writer.Write(_string);
             }
+        }
+
+        string InputFromFile(string _filePath)
+        {
+            string temp = null;
+            Stream stream = File.Open(_filePath, FileMode.Open);
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                temp = reader.ReadToEnd();
+            }
+            return temp;
         }
 
         void ParseRootObject (RootObject _root)
@@ -232,7 +248,7 @@ namespace WindowsFormsApplication1
                 }
             } else
             {
-                checkOver = true;
+                currentlyDownloading = true;
                 AppendToTextbox("No changes made!");
             }
         }
@@ -249,7 +265,43 @@ namespace WindowsFormsApplication1
 
         private void ParseButton_Click(object sender, EventArgs e)
         {
-            OutputToText(data.ToString());
+            items.Clear();
+            string[] stashes = Directory.GetFiles("Data");
+            AppendToTextbox(stashes.Length + " stashes on record");
+            foreach (string stash in stashes)
+            {
+                string temp = InputFromFile(stash);
+                Stash tempStash = JsonConvert.DeserializeObject<Stash>(temp);
+                foreach (Item item in tempStash.items)
+                {
+                    if (item.league.Contains(leagueName) || leagueName == null)
+                    {
+                        if (item.typeLine != null && item.typeLine.Contains(itemName) || itemName == null)
+                        items.Add(item);
+                    }
+                }
+            }
+            AppendToTextbox(items.Count + " Items found");
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            leagueName = textBox2.Text;
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            itemName = textBox3.Text;
         }
 
         static byte[] Decompress(byte[] gzip)
