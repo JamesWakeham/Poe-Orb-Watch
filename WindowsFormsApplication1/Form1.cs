@@ -6,9 +6,11 @@ using System.Windows.Forms;
 using Newtonsoft.Json;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace WindowsFormsApplication1
 {
+    [Serializable()]
     public partial class Form1 : Form
     {
         Data data;
@@ -18,12 +20,12 @@ namespace WindowsFormsApplication1
         WebClient client = new WebClient();
 
         Timer timer = new Timer();
+        int time;
 
         float dataSize;
-        bool currentlyDownloading=false, canDownload = true;
 
         string leagueName, itemName;
-
+        
         public Form1()
         {
             items = new List<Item>();
@@ -54,17 +56,14 @@ namespace WindowsFormsApplication1
         public void FormWithTimer()
         {
             timer.Tick += new EventHandler(timer_Tick); // Everytime timer ticks, timer_Tick will be called
-            timer.Interval = (1000) * (2);              // Timer will tick every two seconds
+            timer.Interval = (1000) * (1);              // Timer will tick every two seconds
             timer.Enabled = true;                       // Enable the timer
             timer.Start();
         }
 
         private void timer_Tick(object sender, EventArgs e)
         {
-            if (!canDownload && !currentlyDownloading)
-            {
-                DownloadData(data.nextChangeId);
-            }
+            time++;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -90,12 +89,12 @@ namespace WindowsFormsApplication1
 
             RootObject tempRoot = JsonConvert.DeserializeObject<RootObject>(result);
 
+            //BinaryOutput(tempRoot.next_change_id, tempRoot);
             ParseRootObject(tempRoot);
 
-            if (canDownload)
-            {
-                DownloadData(data.nextChangeId);
-            }
+
+            DownloadData(data.nextChangeId);
+
             SaveStashData();
         }
 
@@ -106,13 +105,10 @@ namespace WindowsFormsApplication1
             data.nextChangeId = nextChangeID;
             client.DownloadDataAsync(new Uri(address));
             textBox1.AppendText("getting data at " + nextChangeID + "\r\n");
-            canDownload = false;
-            currentlyDownloading = true;
         }
 
         private void LoadData_Click(object sender, EventArgs e)
         {
-            currentlyDownloading = false;
             if (data.nextChangeId != null)
             {
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
@@ -172,14 +168,12 @@ namespace WindowsFormsApplication1
 
             ParseRootObject(tempRoot);
 
-            if (!currentlyDownloading)
-            {
-                string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
-                address += temp.next_change_id;
-                data.nextChangeId = temp.next_change_id;
-                client.DownloadDataAsync(new Uri(address));
-                textBox1.AppendText("getting next change id..." + "\r\n");
-            }
+
+            string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
+            address += temp.next_change_id;
+            data.nextChangeId = temp.next_change_id;
+            client.DownloadDataAsync(new Uri(address));
+            textBox1.AppendText("getting next change id..." + "\r\n");
 
             SaveStashData();
         }
@@ -225,31 +219,31 @@ namespace WindowsFormsApplication1
         {
             if (_root.stashes != null)
             {
-                AppendToTextbox("Updating " + _root.stashes.Count() + " stashes...");
-
                 int i = 0;
-                foreach (var item in _root.stashes)
+                foreach (Stash stash in _root.stashes)
                 {
-                    if (item.items.Count == 0)
-                    {
-
-                    }
-                    else
+                    foreach (Item item in stash.items)
                     {
                         i++;
-                        string path = Path.Combine(Environment.CurrentDirectory, @"Data\", item.id);
-
-                        //if (!data.dataLoc.ContainsKey(item.id))
-                        //    data.dataLoc.Add(item.id, path);
-
-                        string tempData = JsonConvert.SerializeObject(item);
-                        OutputToText(tempData, path);
+                        string path = Path.Combine(Environment.CurrentDirectory, @"Data\", stash.accountName);
+                        path += item.id;
+                        path += ".stash";
+                        BinaryOutput(path, item);
                     }
                 }
+                AppendToTextbox("Updating " + i + " items...");
             } else
             {
-                currentlyDownloading = true;
                 AppendToTextbox("No changes made!");
+            }
+        }
+
+        void BinaryOutput (string path, Object data)
+        {
+            using (Stream stream = File.Open(path, FileMode.Create))
+            {
+                BinaryFormatter bin = new BinaryFormatter();
+                bin.Serialize(stream, data);
             }
         }
 
@@ -265,19 +259,20 @@ namespace WindowsFormsApplication1
 
         private void ParseButton_Click(object sender, EventArgs e)
         {
+            int counter =0;
             items.Clear();
-            string[] stashes = Directory.GetFiles("Data");
-            AppendToTextbox(stashes.Length + " stashes on record");
-            foreach (string stash in stashes)
+            string[] itemDirs = Directory.GetFiles("Data");
+            foreach (string dir in itemDirs)
             {
-                string temp = InputFromFile(stash);
-                Stash tempStash = JsonConvert.DeserializeObject<Stash>(temp);
-                foreach (Item item in tempStash.items)
+                using (Stream stream = File.Open(dir, FileMode.Open))
                 {
-                    if (item.league.Contains(leagueName) || leagueName == null)
+                    BinaryFormatter bin = new BinaryFormatter();
+                    Item tempStash = (Item) bin.Deserialize(stream);
+                    if (tempStash.frameType == 6)
                     {
-                        if (item.typeLine != null && item.typeLine.Contains(itemName) || itemName == null)
-                        items.Add(item);
+                        counter++;
+                        items.Add(tempStash);
+                        AppendToTextbox(tempStash.name + " Found! " + counter);
                     }
                 }
             }

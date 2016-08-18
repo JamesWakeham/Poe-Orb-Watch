@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace WindowsFormsApplication1
 {
+    [Serializable]
     public class RootObject
     {
         public string next_change_id { get; set; }

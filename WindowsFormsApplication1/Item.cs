@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WindowsFormsApplication1
 {
+    [Serializable]
     public class Item
     {
         public bool verified { get; set; }
@@ -30,26 +28,6 @@ namespace WindowsFormsApplication1
         public int x { get; set; }
         public int y { get; set; }
         public string inventoryId { get; set; }
-        public List<object> socketedItems { get; set; }
-    }
-
-    public class Socket
-    {
-        public int group { get; set; }
-        public string attr { get; set; }
-    }
-
-    public class Property
-    {
-        public string name { get; set; }
-        public List<object> values { get; set; }
-        public int displayMode { get; set; }
-    }
-
-    public class Requirement
-    {
-        public string name { get; set; }
-        public List<List<object>> values { get; set; }
-        public int displayMode { get; set; }
+        //public List<object> socketedItems { get; set; }
     }
 }
