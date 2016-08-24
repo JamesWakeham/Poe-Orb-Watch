@@ -20,11 +20,12 @@ namespace WindowsFormsApplication1
         WebClient client = new WebClient();
 
         Timer timer = new Timer();
-        int time;
 
         float dataSize;
 
         string leagueName, itemName;
+
+        bool downloading = true;
         
         public Form1()
         {
@@ -56,14 +57,17 @@ namespace WindowsFormsApplication1
         public void FormWithTimer()
         {
             timer.Tick += new EventHandler(timer_Tick); // Everytime timer ticks, timer_Tick will be called
-            timer.Interval = (1000) * (1);              // Timer will tick every two seconds
+            timer.Interval = (1000) * (2);              // Timer will tick every two seconds
             timer.Enabled = true;                       // Enable the timer
             timer.Start();
         }
 
         private void timer_Tick(object sender, EventArgs e)
         {
-            time++;
+         if (!downloading)
+            {
+                DownloadData(data.nextChangeId);
+            }   
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -75,6 +79,7 @@ namespace WindowsFormsApplication1
 
         private void DownloadDataComplete(object sender, DownloadDataCompletedEventArgs e)
         {
+            downloading = false;
             AppendToTextbox(dataSize.ToString("0.00") + "mb recieved");
             dataSize = 0;
             textBox1.AppendText("Load Complete!" + "\r\n");
@@ -93,13 +98,14 @@ namespace WindowsFormsApplication1
             ParseRootObject(tempRoot);
 
 
-            DownloadData(data.nextChangeId);
+            //DownloadData(data.nextChangeId);
 
             SaveStashData();
         }
 
         void DownloadData (string nextChangeID)
         {
+            downloading = true;
             string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
             address += nextChangeID;
             data.nextChangeId = nextChangeID;
@@ -111,6 +117,7 @@ namespace WindowsFormsApplication1
         {
             if (data.nextChangeId != null)
             {
+                downloading = true;
                 string address = "http://www.pathofexile.com/api/public-stash-tabs?id=";
                 address += data.nextChangeId;
                 client.DownloadDataAsync(new Uri(address));
@@ -224,11 +231,14 @@ namespace WindowsFormsApplication1
                 {
                     foreach (Item item in stash.items)
                     {
-                        i++;
-                        string path = Path.Combine(Environment.CurrentDirectory, @"Data\", stash.accountName);
-                        path += item.id;
-                        path += ".stash";
-                        BinaryOutput(path, item);
+                        if (item.frameType == 5)
+                        {
+                            i++;
+                            string path = Path.Combine(Environment.CurrentDirectory, @"Data\", stash.accountName);
+                            path += item.id;
+                            path += ".stash";
+                            BinaryOutput(path, item);
+                        }
                     }
                 }
                 AppendToTextbox("Updating " + i + " items...");
@@ -259,20 +269,21 @@ namespace WindowsFormsApplication1
 
         private void ParseButton_Click(object sender, EventArgs e)
         {
-            int counter =0;
+            float counter =0;
             items.Clear();
             string[] itemDirs = Directory.GetFiles("Data");
+
             foreach (string dir in itemDirs)
             {
+                counter++;
+                AppendToTextbox(((counter / itemDirs.Length)*100).ToString("0.0") + "% Complete");
                 using (Stream stream = File.Open(dir, FileMode.Open))
                 {
                     BinaryFormatter bin = new BinaryFormatter();
                     Item tempStash = (Item) bin.Deserialize(stream);
-                    if (tempStash.frameType == 6)
+                    if (tempStash.typeLine == "Silver Coin" && tempStash.note != null)
                     {
-                        counter++;
                         items.Add(tempStash);
-                        AppendToTextbox(tempStash.name + " Found! " + counter);
                     }
                 }
             }
