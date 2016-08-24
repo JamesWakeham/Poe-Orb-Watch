@@ -53,6 +53,12 @@ namespace WindowsFormsApplication1
                 LoadStashData();
                 AppendToTextbox(data.nextChangeId + " is next change ID");
             }
+            AppendToTextbox("Hello! and welcome to Parse of Exile, the Path of Exile Stash Tab API Parser Tool.");
+            AppendToTextbox("To test the tool press the 'Start Loading From Data Stream' button, wait a few seconds, then hit 'Parse Data'.");
+            AppendToTextbox("The tool should begin pulling data from the /Data Directory and counting it based on the filters above");
+            AppendToTextbox("WARNING: the data stream is MASSIVE, if you leave this program running after pressing 'Start Loading From Data Stream'");
+            AppendToTextbox("It will continuously pull data and save it to your computer. -James");
+            AppendToTextbox("If your are having trouble with errors or crashes, try deleting the Data folder and the 'data.txt' file in the root of this program");
         }
 
         public void FormWithTimer()
