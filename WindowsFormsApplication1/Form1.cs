@@ -24,6 +24,7 @@ namespace WindowsFormsApplication1
         float dataSize;
 
         string leagueName, itemName;
+        int frameType=0;
 
         bool downloading = true;
         
@@ -224,27 +225,17 @@ namespace WindowsFormsApplication1
 
         void ParseRootObject (RootObject _root)
         {
-            if (_root.stashes != null)
+            int i = 0;
+            foreach (Stash stash in _root.stashes)
             {
-                int i = 0;
-                foreach (Stash stash in _root.stashes)
+                foreach (Item item in stash.items)
                 {
-                    foreach (Item item in stash.items)
-                    {
-                        if (item.frameType == 5)
-                        {
-                            i++;
-                            string path = Path.Combine(Environment.CurrentDirectory, @"Data\", stash.accountName);
-                            path += item.id;
-                            path += ".stash";
-                            BinaryOutput(path, item);
-                        }
-                    }
+                    i++;
+                    string path = Path.Combine(Environment.CurrentDirectory, @"Data\", stash.accountName);
+                    path += item.id;
+                    path += ".stash";
+                    BinaryOutput(path, item);
                 }
-                AppendToTextbox("Updating " + i + " items...");
-            } else
-            {
-                AppendToTextbox("No changes made!");
             }
         }
 
@@ -281,9 +272,16 @@ namespace WindowsFormsApplication1
                 {
                     BinaryFormatter bin = new BinaryFormatter();
                     Item tempStash = (Item) bin.Deserialize(stream);
-                    if (tempStash.typeLine == "Silver Coin" && tempStash.note != null)
+
+                    if (tempStash.typeLine.Contains(itemName??"") && tempStash.league.Contains(leagueName??""))
                     {
-                        items.Add(tempStash);
+                        if (frameType == 0)
+                        {
+                            items.Add(tempStash);
+                        } else if (tempStash.frameType == frameType)
+                        {
+                            items.Add(tempStash);
+                        }
                     }
                 }
             }
@@ -308,6 +306,30 @@ namespace WindowsFormsApplication1
         private void textBox3_TextChanged(object sender, EventArgs e)
         {
             itemName = textBox3.Text;
+        }
+
+        private void label3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox1.Text == "Currency")
+            {
+                frameType = 5;   
+            } else if (comboBox1.Text == "Card")
+            {
+                frameType = 6;
+            } else
+            {
+                frameType = 0;
+            }
         }
 
         static byte[] Decompress(byte[] gzip)

@@ -31,3 +31,4 @@ C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\o
 C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Release\WindowsFormsApplication1.Form1.resources
 C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Release\WindowsFormsApplication1.Properties.Resources.resources
 C:\Users\James Wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Release\WindowsFormsApplication1.csproj.GenerateResource.Cache
+C:\Users\james.wakeham\Documents\GitHub\Poe-Orb-Watch\WindowsFormsApplication1\obj\Release\WindowsFormsApplication1.csprojResolveAssemblyReference.cache
